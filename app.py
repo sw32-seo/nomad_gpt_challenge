@@ -93,6 +93,11 @@ with st.sidebar:
 
     file = st.file_uploader('Upload a text file', type='txt')
 
+    app_link = "https://github.com/sw32-seo/nomad_gpt_challenge/blob/main/app.py"
+    st.markdown("""
+    [Github](%s)   
+    """ % app_link)
+
 if api_key and file:
     st.write('You have entered your API Key')
     llm = ChatOpenAI(model="gpt-3.5-turbo",
