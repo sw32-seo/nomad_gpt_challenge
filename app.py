@@ -1,10 +1,11 @@
 import streamlit as st
+import os
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import FewShotChatMessagePromptTemplate, ChatPromptTemplate, MessagesPlaceholder
+from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
 from langchain.memory import ConversationBufferMemory
 from langchain.document_loaders import UnstructuredFileLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.storage import LocalFileStore
 from langchain.embeddings import CacheBackedEmbeddings, OpenAIEmbeddings
@@ -84,6 +85,11 @@ prompt = ChatPromptTemplate.from_messages([("system", """
      If you don't know the answer, ust say you don't know, don't make it up.
      Context: {context}
         """), ("human", "{message}")])
+
+# create a folders for the cache
+os.makedirs(".cache", exist_ok=True)
+os.makedirs(".cache/files", exist_ok=True)
+os.makedirs(".cache/embeddings", exist_ok=True)
 
 st.title('Retrieval Augmented Generation')
 
