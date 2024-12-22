@@ -8,6 +8,7 @@ from langchain.retrievers import WikipediaRetriever
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.schema import BaseOutputParser
+from langchain.schema.runnable import RunnablePassthrough
 
 
 class JsonOutputParser(BaseOutputParser):
@@ -25,7 +26,7 @@ os.makedirs("./.cache/quiz_files", exist_ok=True)
 
 
 def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
+    return "\n\n".join(doc for doc in docs)
 
 
 @st.cache_resource(show_spinner="Loading file...")
@@ -45,6 +46,13 @@ def split_file(file):
     return docs
 
 
+@st.cache_data(show_spinner="Making quiz...")
+def run_quiz_chain(_docs, topic, difficulty):
+    chain = {"context": questions_chain} | formatting_chain | output_parser
+    response = chain.invoke({"context": _docs, "difficulty": difficulty})
+    return response
+
+
 @st.cache_data(show_spinner="Searching Wikipedia...")
 def wiki_search(topic):
     retriever = WikipediaRetriever(top_k_results=2)
@@ -58,6 +66,10 @@ questions_prompt = ChatPromptTemplate.from_template("""
     Based ONLY on the following context make 10 questions to test the user's knowledge about the text.
 
     Each question should have 4 answers, three of them must be incorrect and one should be correct.
+                                                    
+    Adjust the questions to the difficulty level selected by the user.
+
+    Difficulty: {difficulty}
 
     Use (o) to signal the correct answer.
 
@@ -210,6 +222,9 @@ with st.sidebar:
     choice = st.selectbox("Choose what you want to use.",
                           ("File", "Wikipedia Article"))
 
+    difficulty = st.selectbox("Choose the difficulty level of the quiz.",
+                              ("Easy", "Medium", "Hard"))
+
     if choice == "File":
         file = st.file_uploader("Upload a file in .docx, .txt or .pdf format.",
                                 type=["docx", "txt", "pdf"])
@@ -219,6 +234,15 @@ with st.sidebar:
         topic = st.text_input("Enter a topic.")
         if topic:
             docs = wiki_search(topic)
+
+    llm = ChatOpenAI(api_key=api_key)
+
+    questions_chain = {
+        "context": format_docs,
+        "difficulty": RunnablePassthrough(),
+    } | questions_prompt | llm
+
+    formatting_chain = formatting_prompt | llm
 
     app_link = "https://github.com/sw32-seo/nomad_gpt_challenge/blob/main/quiz_gpt.py"
     st.markdown("""
@@ -235,3 +259,31 @@ if not docs:
 
     Then you can set the dificulty level of the quiz.
 """)
+
+else:
+    response = run_quiz_chain(docs,
+                              topic if topic else file.name,
+                              difficulty=difficulty)
+    with st.form("questions_form"):
+        for question in response["questions"]:
+            st.write(question["question"])
+            value = st.radio(
+                "Select an option",
+                [answer["answer"] for answer in question["answers"]],
+                index=None)
+
+            if {"answer": value, "correct": True} in question["answers"]:
+                st.success("Correct!")
+            elif value is not None:
+                st.error("Wrong!")
+
+        button = st.form_submit_button()
+
+        if button:
+            right = 0
+            for question in response["questions"]:
+                if {"answer": value, "correct": True} in question["answers"]:
+                    right += 1
+                if right == 10:
+                    st.balloons()
+                    st.write("Congratulations! You got all the answers right!")
