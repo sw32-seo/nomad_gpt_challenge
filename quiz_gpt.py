@@ -237,12 +237,12 @@ with st.sidebar:
     if api_key:
         llm = ChatOpenAI(api_key=api_key)
 
-    questions_chain = {
-        "context": format_docs,
-        "difficulty": RunnablePassthrough(),
-    } | questions_prompt | llm
+        questions_chain = {
+            "context": format_docs,
+            "difficulty": RunnablePassthrough(),
+        } | questions_prompt | llm
 
-    formatting_chain = formatting_prompt | llm
+        formatting_chain = formatting_prompt | llm
 
     app_link = "https://github.com/sw32-seo/nomad_gpt_challenge/blob/main/quiz_gpt.py"
     st.markdown("""
