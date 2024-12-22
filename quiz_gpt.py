@@ -234,8 +234,8 @@ with st.sidebar:
         topic = st.text_input("Enter a topic.")
         if topic:
             docs = wiki_search(topic)
-
-    llm = ChatOpenAI(api_key=api_key)
+    if api_key:
+        llm = ChatOpenAI(api_key=api_key)
 
     questions_chain = {
         "context": format_docs,
