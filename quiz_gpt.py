@@ -235,12 +235,56 @@ with st.sidebar:
         if topic:
             docs = wiki_search(topic)
     if api_key:
-        llm = ChatOpenAI(api_key=api_key)
+        function = {
+            "name": "create_quiz",
+            "description":
+            "function that takes a list of questions and answers and returns a quiz",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "questions": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "question": {
+                                    "type": "string",
+                                },
+                                "answers": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "answer": {
+                                                "type": "string",
+                                            },
+                                            "correct": {
+                                                "type": "boolean",
+                                            },
+                                        },
+                                        "required": ["answer", "correct"],
+                                    },
+                                },
+                            },
+                            "required": ["question", "answers"],
+                        },
+                    }
+                },
+                "required": ["questions"],
+            },
+        }
+
+        llm = ChatOpenAI(api_key=api_key, temperature=0.1)
+
+        fn_call_llm = ChatOpenAI(api_key=api_key, temperature=0.1).bind(
+            function_call={"name": "create_quiz"},
+            functions=[function],
+        )
 
         questions_chain = {
             "context": format_docs,
             "difficulty": RunnablePassthrough(),
-        } | questions_prompt | llm
+        } | questions_prompt | fn_call_llm
 
         formatting_chain = formatting_prompt | llm
 
