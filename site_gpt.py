@@ -141,7 +141,7 @@ with st.sidebar:
     """ % app_link)
 
 if api_key:
-    llm = ChatOpenAI(temperature=0.1)
+    llm = ChatOpenAI(temperature=0.1, api_key=api_key)
     retriever = load_website(url)
     query = st.text_input("Ask a question to the website")
     if query:
